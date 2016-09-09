@@ -14,19 +14,25 @@ use Psr\Http\Message\ResponseInterface;
 final class SessionMiddleware
 {
     protected $options = [
-        'name'          => 'BoostCMS_Session',
-        'lifetime'      => 3600,
-        'path'          => null,
-        'domain'        => null,
-        'secure'        => false,
-        'httponly'      => true,
-        'cache_limiter' => 'nocache',
+        'autorefresh'           => true,                            // Whether to extend session lifetime after each user activity
+        'bindToIpAddress'       => true,                            // Log user out if IP address changes
+        'bindToUserAgent'       => true,                            // Log user out if user agent changes
+        'cacheLimiter'          => 'nocache',                       // Cache Limiter to be set on session
+        'cookie_domain'         => null,                            // Session cookie domain
+        'cookie_httponly'       => true,                            // Session cookie httponly setting
+        'cookie_lifetime'       => '1 hour',                        // Session cookie lifetime, can be # of seconds or any string parseable by strtotime()
+        'cookie_name'           => 'BoostCMS_Session',              // Session cookie name
+        'cookie_path'           => null,                            // Session cookie path
+        'cookie_secure'         => false,                           // Session cookie secure: whether or not to use HTTPS
+        'namespace'             => 'InnoBrig'
     ];
 
 
     public function __construct($options = [])
     {
-        $this->options = $options;
+        foreach ($options as $k=>$v) {
+            $this->options[$k] = $v;
+        }
     }
 
 
@@ -43,49 +49,10 @@ final class SessionMiddleware
     {
         global $app;
         $container = $app->getContainer ();
-        $session   = new \InnoBrig\SessionMiddleware\Session ($this->options);
+        $session   = new Session ($this->options);
 
         $container['session'] = $session;
 
         return $next($request, $response);
-    }
-
-
-    public function start()
-    {
-        if (session_status() == PHP_SESSION_ACTIVE) {
-            return;
-        }
-
-        $options = $this->options;
-        $current = session_get_cookie_params();
-
-        $lifetime = (int)($options['lifetime'] ?: $current['lifetime']);
-        $path     = $options['path'] ?: $current['path'];
-        $domain   = $options['domain'] ?: $current['domain'];
-        $secure   = (bool)$options['secure'];
-        $httponly = (bool)$options['httponly'];
-
-        session_set_cookie_params($lifetime, $path, $domain, $secure, $httponly);
-        
-        /*
-        if (session_id()) {
-            if ($settings['autorefresh'] && isset($_COOKIE[$name])) {
-                setcookie(
-                    $name,
-                    $_COOKIE[$name],
-                    time() + $settings['lifetime'],
-                    $settings['path'],
-                    $settings['domain'],
-                    $settings['secure'],
-                    $settings['httponly']
-                );
-            }
-        }
-        */
-
-        session_name($options['name']);
-        session_cache_limiter($options['cache_limiter']);
-        session_start();
     }
 }

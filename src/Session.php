@@ -24,13 +24,17 @@ class Session extends AbstractConfig implements SessionInterface
     protected $data = [];
 
     protected $options = [
-        'name'          => 'InnoBrigSession',
-        'lifetime'      => 3600,
-        'path'          => null,
-        'domain'        => null,
-        'secure'        => false,
-        'httponly'      => true,
-        'cache_limiter' => 'nocache',
+        'autorefresh'           => true,                            // Whether to extend session lifetime after each user activity
+        'bindToIpAddress'       => true,                            // Log user out if IP address changes
+        'bindToUserAgent'       => true,                            // Log user out if user agent changes
+        'cacheLimiter'          => 'nocache',                       // Cache Limiter to be set on session
+        'cookie_domain'         => null,                            // Session cookie domain
+        'cookie_httponly'       => true,                            // Session cookie httponly setting
+        'cookie_lifetime'       => '1 hour',                        // Session cookie lifetime, can be # of seconds or any string parseable by strtotime()
+        'cookie_name'           => 'BoostCMS_Session',              // Session cookie name
+        'cookie_path'           => null,                            // Session cookie path
+        'cookie_secure'         => false,                           // Session cookie secure: whether or not to use HTTPS
+        'namespace'             => 'InnoBrig'
     ];
 
     /**
@@ -39,9 +43,11 @@ class Session extends AbstractConfig implements SessionInterface
      * @param string $namespace Session namespace.
      * @param bool $initialize Whether to start a PHP session, register and reference the namespace in the constructor.
      */
-    public function __construct($options, $initialize = true)
+    public function __construct($options = null, $initialize = true)
     {
-        $this->options = $options;
+        if ($options) {
+            $this->options = $options;
+        }
 
         if (isset($options['namespace']) && $options['namespace'] !== null) {
             $this->setNamespace($options['namespace']);
@@ -83,7 +89,7 @@ class Session extends AbstractConfig implements SessionInterface
         session_name ($name);
         session_cache_limiter ($options['cacheLimiter']);
 
-        if (session_id() && $options['autorefresh'] && isset($_COOKIE[$name])) {
+        if (session_id() && isset($options['autorefresh']) && $options['autorefresh'] && isset($_COOKIE[$name])) {
             setcookie($name, $_COOKIE[$name], time() + $lifetime, $path, $domain, $secure, $httponly);
         }
         
